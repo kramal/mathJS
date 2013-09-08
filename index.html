@@ -1,0 +1,150 @@
+<script>
+var matrix = function(){
+	var rowSize = arguments[0]
+		,colSize = arguments[1]
+		,data = arguments[2]
+		,_size = arguments.length;
+	
+	if( _size == 0 ){
+		this.rowSize = rowSize || 3;
+		this.colSize = colSize || 3;
+		this.data = [[0,1,2],[3,4,5],[6,7,8]] || data;
+		
+	}else if( _size == 1 ){
+		this.rowSize = this.colSize = rowSize;
+		this.data = [];
+		var row = [];
+		for(var i = 0; i < rowSize; i++ ){
+			for(var j = 0; j < rowSize; j++ ){
+				row[j] = 1;//parseInt(Math.rand());	
+			}
+			this.data[i] = row;
+		}
+		
+	}else if( _size == 2 ){
+		this.rowSize = rowSize;
+		this.colSize = colSize;
+		this.data = [];
+		var row = [];
+		for(var i = 0; i < rowSize; i++ ){
+			for(var j = 0; j < colSize; j++ ){
+				row[j] = 1;//parseInt(Math.rand());	
+			}
+			this.data[i] = row;
+		}
+	
+	}else{
+		this.rowSize = rowSize ;
+		this.colSize = colSize ;
+		this.data = []; //data;
+		
+		var count = (data.join().split(",")).length
+			,mustBe = rowSize*colSize;
+			
+		if(count < mustBe){
+			throw("There are too little elements ");
+		}else if(count > mustBe){
+			throw("There are too more elements ");
+		}else{
+			var row = []
+				,data = data.join().split(",");
+			console.log(data);
+				
+			for(var i = 0; i < rowSize; i++ ){
+				for(var j = 0; j < colSize; j++ ){
+					row[j] = parseInt( data.shift() );	
+				}
+			this.data[i] = row;
+			}
+		
+		}
+	}
+	
+	//print matrix to console and return matrix as string
+	this.print = function(){
+		var me = this , str = "";
+		if(me.data.length == 0)return null;
+		for(var i=0;i<me.rowSize;i++){
+			for(var j=0;j<me.colSize;j++)
+				str += me.data[i][j]+" ";
+			str += "\n";
+		}
+		console.log(str);
+	};
+	
+	//gets i-th row as array
+	this.getRowAt = function(k){
+		var ar = [];
+		for(var i = 0; i < this.colSize; i++){
+			ar[i] = this.data[k][i];
+		}
+		return ar;
+	};
+	
+	//gets i-th column as array
+	this.getColAt = function(k){
+		var ar = [];
+		for(var i = 0; i < this.rowSize; i++){
+			ar[i] = this.data[i][k];
+		}
+		return ar;
+	};
+	
+	//scalar value of two vectors
+	this.scalar = function(m1,m2){
+		var val = 0;
+		for(var i = 0; i < m1.length; i++)val +=(m1[i]*m2[i]);
+		return val;
+	};
+	
+	//check matrix to be N x N
+	this.isQuad = function(){
+		if(this.colSize == this.rowSize)return true;
+		return false;
+	};
+	
+	//inner function return multiplication of dimensions of matrix
+	//it is used (after) in conjunction with isQuad
+	this._prodSize = function(){
+		return this.colSize * this.rowSize;
+	};
+	
+	//multiply matrix to matrix or number, return resulting one
+	this.multiply = function(){
+		var matr = arguments[0]
+			,me = this
+			,res = new matrix(me.colSize,me.colSize);
+
+		if( (matr instanceof matrix) ){
+			if( me.isQuad() && matr.isQuad() ){
+				if( me._prodSize() == matr._prodSize() ){
+					for(var i = 0; i < me.rowSize; i++){
+						for(var j = 0; j < me.colSize; j++){
+							res.data[i][j] = me.scalar(me.getRowAt(i),matr.getColAt(j));
+						}
+					}
+					
+					return res;
+				}else{
+					throw("Matrixes have not equal size");
+				}
+			}else{
+				throw("Matrix is not quadratic ");
+			}
+			
+		}else{
+			var number = parseInt(matr);
+			for(var i = 0; i < me.rowSize; i++){
+				for(var j = 0; j < me.colSize; j++){
+					me.data[i][j] *= number;
+				}
+			}
+			
+			return me;
+		}
+	}
+};
+
+var t = new matrix();
+
+</script>
