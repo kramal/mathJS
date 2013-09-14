@@ -6,6 +6,7 @@ JSMathExt.matrix = function(){
 		,colSize = arguments[1]
 		,data = arguments[2]
 		,_size = arguments.length;
+	this.isSystemEquation = false;
 	//creates matrix 
 	if( _size == 0 ){
 		this.rowSize = rowSize || 3;
@@ -50,16 +51,50 @@ JSMathExt.matrix = function(){
 		}
 		
 	}else if( _size == 2 ){
-		this.rowSize = rowSize;
-		this.colSize = colSize;
-		this.data = [];
-		var row = [];
-		for(var i = 0; i < rowSize; i++ ){
-			for(var j = 0; j < colSize; j++ ){
-				row[j] = parseInt(rowSize*colSize*Math.random());	
+		if( !rowSize.length ){
+			this.rowSize = rowSize;
+			this.colSize = colSize;
+			this.data = [];
+			var row = [];
+			for(var i = 0; i < rowSize; i++ ){
+				for(var j = 0; j < colSize; j++ ){
+					row[j] = parseInt(rowSize*colSize*Math.random());	
+				}
+				this.data[i] = row;
+				row = [];
 			}
-			this.data[i] = row;
-			row = [];
+		}else{
+			//here matrix presents systems of linear equations
+			this.isSystemEquation = true;
+			var matr = rowSize
+				,rows = matr.length
+				,cols = (function(){
+					var max_col = matr[0].length;
+					for(var i = 0; i<matr.length; i++){
+						if(max_col < matr[i].length)max_col = matr[i].length;
+					}
+					return max_col;
+				})(matr)
+				,row = [];
+				
+			this.data = [];
+			this.rowSize = rows;
+			this.colSize = cols;	
+			
+			for(var i=0; i < rows; i++){
+				for(var j=0; j < cols; j++){
+					row[j] = (matr[i][j] || 0);
+				}
+				this.data[i] = row;
+				row = [];
+			}
+			
+			if( colSize.length ){
+				console.log(colSize);
+			}else{
+			
+			}
+			
 		}
 	
 	}else{
@@ -71,9 +106,9 @@ JSMathExt.matrix = function(){
 			,mustBe = rowSize*colSize;
 		
 		if(count < mustBe){
-			throw("There are too little elements ");
+			throw("There are too little elements "+mustBe+" , "+count);
 		}else if(count > mustBe){
-			throw("There are too more elements ");
+			throw("There are too more elements "+mustBe+" , "+count);
 		}else{
 			var row = [];
 			console.log(data);
@@ -86,7 +121,7 @@ JSMathExt.matrix = function(){
 			row = [];
 			}
 		}
-	}
+	};
 	
 	//print matrix to web console and return matrix as string
 	this.print = function(){
@@ -109,6 +144,61 @@ JSMathExt.matrix = function(){
 		}
 		return ar;
 	};
+	
+	//adds row
+	this.addRow = function(row,place){
+		var place = parseInt(arguments[1])
+			,row = arguments[0];
+		try{
+			if( !(row instanceof Array) ){
+				throw("Row is not array");
+			}
+		}catch(e){
+			row = [];
+		}finally{
+			if(row.length < this.rowSize){
+				row = this._stretchVectorBy( row,this.rowSize);
+			}
+			
+			if( place ){
+				this.data.splice( place,0,row );
+				this.rowSize++;
+			}else{
+				this.data.push( row );
+				this.rowSize++;
+			}
+		}
+	};
+	
+	//adds column
+	this.addCol = function(col,place){
+		var place = parseInt(arguments[1])
+			,col = arguments[0];
+		
+		try{
+			if( !(col instanceof Array) ){
+				throw("Column is not array");
+			}
+		}catch(e){
+			col = new Array();
+		}finally{
+			if(col.length < this.colSize){
+				col = this._stretchVectorBy( col,this.colSize);
+			}
+			
+			if( place ){
+				this.transpon();
+				this.data.splice( place,0,col );
+				this.rowSize++;
+			}else{
+				this.transpon();
+				this.data.push( col );
+				//this.colSize++;
+				this.rowSize++;
+			}
+			this.transpon();
+		}
+	}
 	
 	//change N-th row 
 	this.replaceRowAt = function(row,k){
@@ -152,6 +242,15 @@ JSMathExt.matrix = function(){
 		return this.colSize * this.rowSize;
 	};
 	
+	//inner function stretch row or column to relevant matrix size by argument or 0
+	this._stretchVectorBy = function(){
+		var vector = arguments[0]
+			,size = arguments[1]
+			,stub = arguments[2] || [];
+		for(var i = 0;i<size;i++)vector.push( (stub[i] || 0) );
+		return vector;
+	};
+	
 	//multiply matrix to matrix or number, return resulting one
 	this.multiply = function(){
 		var matr = arguments[0]//ohter matrix
@@ -187,33 +286,42 @@ JSMathExt.matrix = function(){
 		return me;
 	};
 	
-	//gets submatix 
+	//gets submatrix 
 	this.sub = function(){
 		var data = []
 			,matr = null
-			,n = arguments[0];
+			,n = parseInt(arguments[0]);
 		
 		for(var i = 0; i < this.rowSize; i++){
 			for( var j =0; j < this.colSize; j++){
-				if(i != 0 && j!= 0) data.push(this.data[i][j]);
+				if(!n || n == 0){
+					if(i != 0 && j!= 0) data.push(this.data[i][j]);
+				}else{
+					if( i >= n && j >=n ) data.push(this.data[i][j]);
+				}
 			}
 		} 
 		
-		matr = new JSMathExt.matrix(this.rowSize-1,this.colSize-1,data);
+		matr = new JSMathExt.matrix(this.rowSize-n,this.colSize-n,data);
 		return matr;
 	};
 	
-	//computes determinant of the matrix
-	this.det = function(){
+	//transponiren das matrix
+	this.transpon = function(){
 		var me = this
-			,det = 0.0
-			,del = 0
+			,columns = []
 			,rows = me.rowSize
-			,cols = me.colSize
-			,lader = 0;
+			,cols = me.colSize;
 		
+		for( var i=0; i<cols; i++){
+			columns.push( me.getColAt(i) );
+		}
+		me.data = columns;
+		me.rowSize = cols;
+		me.colSize = rows;
 	};
+	
 };
 
-M = JSMathExt.matrix ;
+var M = JSMathExt.matrix ;
 </script>
