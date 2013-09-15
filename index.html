@@ -6,6 +6,7 @@ JSMathExt.matrix = function(){
 		,colSize = arguments[1]
 		,data = arguments[2]
 		,_size = arguments.length;
+		
 	this.isSystemEquation = false;
 	//creates matrix 
 	if( _size == 0 ){
@@ -126,29 +127,26 @@ JSMathExt.matrix = function(){
 	//print matrix to web console and return matrix as string
 	this.print = function(){
 		var me = this , str = "";
-		if(me.data.length == 0)return null;
-		for(var i=0;i<me.rowSize;i++){
-			for(var j=0;j<me.colSize;j++)
+		
+		if( me.data.length == 0 )return null;
+		for( var i=0 ; i < me.rowSize; i++ ){
+			for( var j=0; j < me.colSize; j++ )
 				str += me.data[i][j]+" ";
 			str += "\n";
 		}
-		console.log(str);
-		//return str;
+		return str;
 	};
 	
-	//gets i-th row as array
-	this.getRowAt = function(k){
-		var ar = [];
-		for(var i = 0; i < this.colSize; i++){
-			ar[i] = this.data[k][i];
-		}
-		return ar;
-	};
+	//
+	this.toString = function(){
+		return this.print();
+	}
 	
 	//adds row
 	this.addRow = function(row,place){
 		var place = parseInt(arguments[1])
-			,row = arguments[0];
+			,row = arguments[0]
+			,me = this;
 		try{
 			if( !(row instanceof Array) ){
 				throw("Row is not array");
@@ -173,7 +171,8 @@ JSMathExt.matrix = function(){
 	//adds column
 	this.addCol = function(col,place){
 		var place = parseInt(arguments[1])
-			,col = arguments[0];
+			,col = arguments[0]
+			,me = this;
 		
 		try{
 			if( !(col instanceof Array) ){
@@ -182,23 +181,70 @@ JSMathExt.matrix = function(){
 		}catch(e){
 			col = new Array();
 		}finally{
-			if(col.length < this.colSize){
-				col = this._stretchVectorBy( col,this.colSize);
+			if(col.length < me.colSize){
+				col = me._stretchVectorBy( col,me.colSize);
 			}
 			
 			if( place ){
-				this.transpon();
-				this.data.splice( place,0,col );
-				this.rowSize++;
+				me.transpon();
+				me.data.splice( place,0,col );
+				me.rowSize++;
 			}else{
-				this.transpon();
-				this.data.push( col );
-				//this.colSize++;
-				this.rowSize++;
+				me.transpon();
+				me.data.push( col );
+				//me.colSize++;
+				me.rowSize++;
 			}
-			this.transpon();
+			me.transpon();
 		}
-	}
+	};
+	
+	//remove column
+	this.removeColAt = function(){
+		
+		var place = parseInt( arguments[0] )
+			,columns = []
+			,me = this;
+				
+		me.transpon();	
+		if( place || place == 0 ){
+			me.data.splice( place,1 );
+		}else{
+			me.data.splice( me.colSize-1,1 );
+		}
+		me.rowSize--;
+		me.transpon();	
+	};
+	
+	//remove row
+	this.removeRowAt = function(){
+		var place = parseInt( arguments[0] )
+			,columns = []
+			,me = this;
+				
+		if( place ){
+			me.data.splice( place,1 );
+		}else{
+			me.data.splice( me.rowSize-1,1 );
+		}
+		me.rowSize--;
+	};
+	
+	//gets i-th row as array
+	this.getRowAt = function(k){
+		var ar = []
+			,k = (function(numb){
+				var k = numb;
+				if(k-k == 0)return k;
+				console.log('Error in getRowAt: argument is not number ');
+				return 0;
+			})(arguments[0]);
+		
+		for(var i = 0; i < this.colSize; i++){
+			ar[i] = this.data[k][i];
+		}
+		return ar;
+	};
 	
 	//change N-th row 
 	this.replaceRowAt = function(row,k){
@@ -209,10 +255,18 @@ JSMathExt.matrix = function(){
 	
 	//gets i-th column as array
 	this.getColAt = function(k){
-		var ar = [];
+		var ar = []
+			,k = (function(numb){
+				var k = numb;
+				if(k-k == 0)return k;
+				console.log('Error in getColAt: argument is not number ');
+				return 0;
+			})(arguments[0]);
+		
 		for( var i = 0; i < this.rowSize; i++ ){
 			ar[i] = this.data[i][k];
 		}
+		
 		return ar;
 	};
 	
@@ -312,8 +366,8 @@ JSMathExt.matrix = function(){
 			,columns = []
 			,rows = me.rowSize
 			,cols = me.colSize;
-		
-		for( var i=0; i<cols; i++){
+		console.log(rows+' '+cols);
+		for( var i=0; i < cols; i++ ){
 			columns.push( me.getColAt(i) );
 		}
 		me.data = columns;
@@ -324,4 +378,5 @@ JSMathExt.matrix = function(){
 };
 
 var M = JSMathExt.matrix ;
+if(Math)Math.matrix = M;
 </script>
