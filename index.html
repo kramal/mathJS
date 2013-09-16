@@ -8,11 +8,11 @@ JSMathExt.matrix = function(){
 		,_size = arguments.length;
 		
 	this.isSystemEquation = false;
-	
+	this.diagonalized = false; 
+	//self-executable function where defined methods of matrix
 	( function( me ){
 		
 	//print matrix to web console and return matrix as string
-	console.log(me);
 	me.print = function(){
 		var me = this , str = "";
 		
@@ -218,45 +218,65 @@ JSMathExt.matrix = function(){
 		A(n-1,1)*x(1)+ ... +B(n-1,m)*x(m) = x(m-1)
 		A(n,1)*x(1)+ ... +B(n,m)*x(m) = x(m)
 	  after diagonalizing:
-		A(1,1)*x(1)+ ... +B(1,n)*x(m) = x(1)
+		A(1,1)*x(1)+ ... +0*x(m) = x(1)
 		...
-		0*x(1)+ ... 0+B(n-2,m)*x(m)+B(n-1,m)*x(m) = x(m-1)
-		0*x(1)+ ... +B(n,m)*x(m) = x(m)
-	  
+		0*x(1)+ ... C(n-1,m-1)*x(m)+0*x(m) 	= x(m-1)
+		0*x(1)+ ... 			+B(n,m)*x(m) = x(m)
+		this method must be applied only to system of equations
+		where matrix size is N*(N+1), that is, there are only N rows
+		and N+1 columns. The (N+1)th column is (x(1), ... , x(m)) vector
+		in above example.
 	*/
 	me.diagonalize = function(){
 		var me = this
-			,cols = me.colSize
-			,rows = me.rowSize
-			,del = 0 , k = 0 
-			,time = (function(){
-				if(arguments[0] === true){
-					return 2;
-				}else{
-					return 1;
-				}
-			})(arguments[0])
 			, doit = function(){
+				var cols = me.colSize
+					,rows = me.rowSize
+					,del = 0 , k = 0 ;
 				for(;k<rows-1;k++)
 				for(var i = 0; i<rows-k-1; i++){
 					var tb = me.data[rows-i-1][k]
 						,as = me.data[k][k];
 					if( as == 0 || tb == 0 )continue;
-					del = me.data[rows-i-1][k] / me.data[k][k];
+					del = tb / as;
 					for(var j = 0; j<cols; j++){
 						me.data[rows-i-1][j] = me.data[rows-i-1][j] - del*me.data[k][j];
+						if( Math.abs(me.data[rows-i-1][j]) < 0.0000001 )me.data[rows-i-1][j]=0;
 					}
 				};
+				me.diagonalized = true;
+				if( cols-rows == 1 || me.isSystemEquation ){
+					for(k = cols-2; k>=1;k--)
+					for(var i = k; i>=1; i--){
+						var tb = me.data[i-1][k]
+							,as = me.data[k][k];
+							console.log(tb+','+as);
+						if( as == 0 || tb == 0 )continue;
+						del = tb / as;
+						for(var j = 0; j<cols; j++){
+							me.data[i-1][j] = me.data[i-1][j] - del*me.data[k][j];
+							if( Math.abs(me.data[i-1][j]) < 0.0000001 )me.data[i-1][j]=0;
+						}
+					};
+				}
+				
 			};
 		doit();
-		if(time == 2){
-			console.log(555);
-			this.transpon();
-			doit();
-			this.transpon();
-		}
+		this.print();
 		
 	};
+		
+	//work if system of equation is diagonalized
+	me.getResolve = function(){
+		if( this.diagonalized ){
+			var solve = [];
+			for(var i = 0; i < me.rowSize; i++){
+				solve.push( me.data[i][me.colSize-1]/me.data[i][i] );
+			}
+			return solve;
+		}
+	};
+
 	
 	//inner function return multiplication of dimensions of matrix N*M
 	//it is used (after) in conjunction with isQuad
@@ -334,7 +354,6 @@ JSMathExt.matrix = function(){
 			,columns = []
 			,rows = me.rowSize
 			,cols = me.colSize;
-		console.log(rows+' '+cols);
 		for( var i=0; i < cols; i++ ){
 			columns.push( me.getColAt(i) );
 		}
@@ -389,7 +408,7 @@ JSMathExt.matrix = function(){
 			this.data = [];
 			this.rowSize = rows;
 			this.colSize = cols;	
-			
+			if( rows-cols == 1 )this.isSystemEquation = false;
 			for(var i=0; i < rows; i++){
 				for(var j=0; j < cols; j++){
 					row[j] = (matr[i][j] || 0);
@@ -404,6 +423,7 @@ JSMathExt.matrix = function(){
 			this.rowSize = rowSize;
 			this.colSize = colSize;
 			this.data = [];
+			if( rowSize-colSize == 1 )this.isSystemEquation = false;
 			var row = [];
 			for(var i = 0; i < rowSize; i++ ){
 				for(var j = 0; j < colSize; j++ ){
@@ -414,7 +434,6 @@ JSMathExt.matrix = function(){
 			}
 		}else{
 			//here matrix presents systems of linear equations
-			this.isSystemEquation = true;
 			var matr = rowSize
 				,rows = matr.length
 				,cols = (function(){
@@ -425,7 +444,9 @@ JSMathExt.matrix = function(){
 					return max_col;
 				})(matr)
 				,row = [];
-				
+			if( rows-cols == 1 ){
+				this.isSystemEquation = true;
+			}
 			this.data = [];
 			this.rowSize = rows;
 			this.colSize = cols;	
@@ -440,22 +461,20 @@ JSMathExt.matrix = function(){
 			
 			console.log(colSize);
 			this.addCol(colSize);
-			this.isSystemEquation = true;
-			
 		}
 	
 	}else{
 		this.rowSize = rowSize ;
 		this.colSize = colSize ;
 		this.data = []; //data;
-		
+		if( rowSize-colSize = 1 )this.isSystemEquation = false;
 		var count = (data.join().split(",")).length
 			,mustBe = rowSize*colSize;
 		
 		if(count < mustBe){
-			throw("There are too little elements "+mustBe+" , "+count);
+			throw({msg:"There are too little elements must be: "+mustBe+" , real: "+count});
 		}else if(count > mustBe){
-			throw("There are too more elements "+mustBe+" , "+count);
+			throw({msg:"There are too more elements must be: "+mustBe+" , real: "+count});
 		}else{
 			var row = [];
 			console.log(data);
