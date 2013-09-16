@@ -276,6 +276,7 @@ JSMathExt.matrix = function(){
 			};
 		doit();
 		return ( function(t){
+			if( t.isSystemEquation )return null; 
 			var sum = 0;
 			for(var i=0; i<t.rowSize; i++)sum+=t.data[i][i];
 			return sum;
