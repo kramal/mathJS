@@ -258,11 +258,28 @@ JSMathExt.matrix = function(){
 							if( Math.abs(me.data[i-1][j]) < 0.0000001 )me.data[i-1][j]=0;
 						}
 					};
+				}else{
+					for(k = cols-1; k>=1;k--)
+					for(var i = k; i>=1; i--){
+						var tb = me.data[i-1][k]
+							,as = me.data[k][k];
+							console.log(tb+','+as);
+						if( as == 0 || tb == 0 )continue;
+						del = tb / as;
+						for(var j = 0; j<cols; j++){
+							me.data[i-1][j] = me.data[i-1][j] - del*me.data[k][j];
+							if( Math.abs(me.data[i-1][j]) < 0.0000001 )me.data[i-1][j]=0;
+						}
+					};
 				}
 				
 			};
 		doit();
-		this.print();
+		return ( function(t){
+			var sum = 0;
+			for(var i=0; i<t.rowSize; i++)sum+=t.data[i][i];
+			return sum;
+		} )(me);
 		
 	};
 		
@@ -275,6 +292,7 @@ JSMathExt.matrix = function(){
 			}
 			return solve;
 		}
+		console.log("Matrix is not System of Linear Equations or not diagonalized");
 	};
 
 	
