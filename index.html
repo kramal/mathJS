@@ -263,7 +263,7 @@ JSMathExt.matrix = function(){
 					for(var i = k; i>=1; i--){
 						var tb = me.data[i-1][k]
 							,as = me.data[k][k];
-							console.log(tb+','+as);
+			
 						if( as == 0 || tb == 0 )continue;
 						del = tb / as;
 						for(var j = 0; j<cols; j++){
@@ -391,7 +391,62 @@ JSMathExt.matrix = function(){
 	
 	}
 	
-	//system of linear equation 
+	//returns determinant of matrix
+	me.det = function(){
+		var me = this
+			,rows = me.rowSize
+			,cols = me.colSize;
+		if( me.isQuad() ){
+			if( rows == 1 )return me.data[0][0];
+			if( rows == 2 ){
+				var d1 = me.data[0][0]*me.data[1][1];
+				var d2 = me.data[0][1]*me.data[1][0];
+				return d1-d2;
+				
+			}else{
+				var matr = new JSMathExt.matrix(me.data);
+				return matr.diagonalize();
+			}
+		}
+	}
+	
+	//gets algebraic suppplement ()
+	me.algSuppl = function(r,c){
+		var data = []
+			,matr = null
+			,n = parseInt(arguments[0]);
+		
+		for(var i = 0; i < this.rowSize; i++){
+			for( var j =0; j < this.colSize; j++){
+				if(i != c && j!= r) data.push(this.data[i][j]);
+			}
+		} 
+		
+		matr = new JSMathExt.matrix(this.rowSize-1,this.colSize-1,data);
+		return matr;
+		
+	};
+	
+	//return A^-1 matrix of A
+	me.obrat = function(){
+		var me = this
+			,rows = me.rowSize
+			,cols = me.colSize
+			,det = me.det()
+			,matr = new JSMathExt.matrix(me.data);
+		console.log(det+'???');
+		if( me.isQuad() ){
+			for( var i = 0; i<rows; i++ ){
+				for( var j = 0; j<cols; j++ ){
+					var op = -1;
+					if((i+j)%2 == 0)op=1;
+					matr.data[i][j] = ( op*me.algSuppl(i,j).det()/det );
+				}
+			}
+			return matr;
+		}
+	}
+	
 	})(this); 
 	
 	//creates matrix 
@@ -486,7 +541,7 @@ JSMathExt.matrix = function(){
 		this.rowSize = rowSize ;
 		this.colSize = colSize ;
 		this.data = []; //data;
-		if( rowSize-colSize = 1 )this.isSystemEquation = false;
+		if( rowSize-colSize == 1 )this.isSystemEquation = false;
 		var count = (data.join().split(",")).length
 			,mustBe = rowSize*colSize;
 		
@@ -496,7 +551,6 @@ JSMathExt.matrix = function(){
 			throw({msg:"There are too more elements must be: "+mustBe+" , real: "+count});
 		}else{
 			var row = [];
-			console.log(data);
 				
 			for(var i = 0; i < rowSize; i++ ){
 				for(var j = 0; j < colSize; j++ ){
