@@ -325,6 +325,7 @@ JSMathExt.matrix = function(){
 					for(var i = 0; i < me.rowSize; i++){
 						for(var j = 0; j < me.colSize; j++){
 							res.data[i][j] = me.scalar(me.getRowAt(i),matr.getColAt(j));
+							if( Math.abs(res.data[i][j]) < 0.000001 ) res.data[i][j] = 0;
 						}
 					}
 					
@@ -337,7 +338,8 @@ JSMathExt.matrix = function(){
 			}
 			
 		}else{
-			var number = parseInt(matr);
+			var number = matr;
+			console.log(number);
 			for(var i = 0; i < me.rowSize; i++){
 				for(var j = 0; j < me.colSize; j++){
 					me.data[i][j] *= number;
@@ -351,19 +353,16 @@ JSMathExt.matrix = function(){
 	me.sub = function(){
 		var data = []
 			,matr = null
-			,n = parseInt(arguments[0]);
+			,n = parseInt(arguments[0])
+			,m = parseInt(arguments[1]);
 		
 		for(var i = 0; i < this.rowSize; i++){
 			for( var j =0; j < this.colSize; j++){
-				if(!n || n == 0){
-					if(i != 0 && j!= 0) data.push(this.data[i][j]);
-				}else{
-					if( i >= n && j >=n ) data.push(this.data[i][j]);
-				}
+					if(i != n && j!= m) data.push(this.data[i][j]);
+				
 			}
 		} 
-		
-		matr = new JSMathExt.matrix(this.rowSize-n,this.colSize-n,data);
+		matr = new JSMathExt.matrix(this.rowSize-1,this.colSize-1,data);
 		return matr;
 	};
 	
@@ -391,7 +390,7 @@ JSMathExt.matrix = function(){
 	
 	}
 	
-	//returns determinant of matrix
+	//returns determinant of matrix (without recursion)
 	me.det = function(){
 		var me = this
 			,rows = me.rowSize
@@ -410,15 +409,43 @@ JSMathExt.matrix = function(){
 		}
 	}
 	
+	//returns determinant of matrix (with recursion)
+	me.detR = function(){
+		var me = this
+			,rows = me.rowSize
+			,cols = me.colSize
+			,sum = 0;
+		if( me.isQuad() ){
+			if( rows == 1 )return me.data[0][0];
+			if( rows == 2 ){
+				
+				var d1 = me.data[0][0]*me.data[1][1];
+				var d2 = me.data[0][1]*me.data[1][0];
+				//console.log(d1-d2);
+				return d1-d2;
+				
+			}else{
+				for(var i=0;i<me.colSize;i++){
+					sum += ( (i%2 == 1)?-1:1 )*( me.sub(0,i).detR() )*me.data[0][i];
+				}
+				return sum;
+			}
+		}
+	}
+	
 	//gets algebraic suppplement ()
-	me.algSuppl = function(r,c){
+	//r number of row, 
+	//c number of column
+	me.algebSupplement = function(r,c){
 		var data = []
 			,matr = null
 			,n = parseInt(arguments[0]);
 		
 		for(var i = 0; i < this.rowSize; i++){
 			for( var j =0; j < this.colSize; j++){
-				if(i != c && j!= r) data.push(this.data[i][j]);
+				if(i != c && j!= r){
+					data.push(this.data[i][j]);
+				}
 			}
 		} 
 		
@@ -432,17 +459,23 @@ JSMathExt.matrix = function(){
 		var me = this
 			,rows = me.rowSize
 			,cols = me.colSize
-			,det = me.det()
-			,matr = new JSMathExt.matrix(me.data);
-		console.log(det+'???');
+			,det = me.detR()
+			,data = [];
 		if( me.isQuad() ){
 			for( var i = 0; i<rows; i++ ){
 				for( var j = 0; j<cols; j++ ){
-					var op = -1;
-					if((i+j)%2 == 0)op=1;
-					matr.data[i][j] = ( op*me.algSuppl(i,j).det()/det );
+					var el =  ( ( (i+j)%2 == 1 )?-1:1 )*me.algebSupplement(i,j).detR() ;
+					if( Math.abs(el) < 0.000001 ){
+						data.push(0);
+					}else{
+						data.push(el);
+					}
 				}
 			}
+			
+			var matr = new JSMathExt.matrix(me.rowSize,me.colSize,data);
+			console.log('#'+det);
+			matr.multiply(1/det);
 			return matr;
 		}
 	}
