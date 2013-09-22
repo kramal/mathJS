@@ -9,6 +9,7 @@ JSMathExt.matrix = function(){
 		
 	this.isSystemEquation = false;
 	this.diagonalized = false; 
+	this._accuracy = 0.000000001;
 	//self-executable function where defined methods of matrix
 	( function( me ){
 		
@@ -24,6 +25,7 @@ JSMathExt.matrix = function(){
 		}
 		return str;
 	};
+	
 	
 	//
 	me.toString = function(){
@@ -232,30 +234,48 @@ JSMathExt.matrix = function(){
 			, doit = function(){
 				var cols = me.colSize
 					,rows = me.rowSize
-					,del = 0 , k = 0 ;
+					,del = 0 , k = 0 , swap = [];
 				for(;k<rows-1;k++)
 				for(var i = 0; i<rows-k-1; i++){
 					var tb = me.data[rows-i-1][k]
 						,as = me.data[k][k];
-					if( as == 0 || tb == 0 )continue;
+					if( as == 0 || tb == 0 ){
+						continue;
+					}
 					del = tb / as;
 					for(var j = 0; j<cols; j++){
 						me.data[rows-i-1][j] = me.data[rows-i-1][j] - del*me.data[k][j];
-						if( Math.abs(me.data[rows-i-1][j]) < 0.0000001 )me.data[rows-i-1][j]=0;
+						if( Math.abs(me.data[rows-i-1][j]) < me._accuracy )me.data[rows-i-1][j]=0;
 					}
+					
 				};
-				me.diagonalized = true;
+				//if a[i][k] and a[i][p] is equal(k>p) then swap rows
+				for( var i = 1;i < rows; i++ ){
+					if( me.data[i][i] == 0 ){
+						console.log(i+','+i+' = '+me.data[i][i]);
+						for(var j=i+1;j<rows;j++){
+							if( me.data[j][i] != 0){
+								console.log(i+','+i+' = '+me.data[j][i]);
+								me.swapRows(i,j);
+								doit();
+								break;
+							}
+						}
+						break;
+					}
+				}
+				me.print();
+				
 				if( cols-rows == 1 || me.isSystemEquation ){
 					for(k = cols-2; k>=1;k--)
 					for(var i = k; i>=1; i--){
 						var tb = me.data[i-1][k]
 							,as = me.data[k][k];
-							console.log(tb+','+as);
 						if( as == 0 || tb == 0 )continue;
 						del = tb / as;
 						for(var j = 0; j<cols; j++){
 							me.data[i-1][j] = me.data[i-1][j] - del*me.data[k][j];
-							if( Math.abs(me.data[i-1][j]) < 0.0000001 )me.data[i-1][j]=0;
+							if( Math.abs(me.data[i-1][j]) < this._accuracy )me.data[i-1][j]=0;
 						}
 					};
 				}else{
@@ -268,21 +288,24 @@ JSMathExt.matrix = function(){
 						del = tb / as;
 						for(var j = 0; j<cols; j++){
 							me.data[i-1][j] = me.data[i-1][j] - del*me.data[k][j];
-							if( Math.abs(me.data[i-1][j]) < 0.0000001 )me.data[i-1][j]=0;
+							if( Math.abs(me.data[i-1][j]) < this._accuracy )me.data[i-1][j]=0;
 						}
 					};
 				}
+				me.diagonalized = true;
 				
 			};
 		doit();
-		return ( function(t){
-			if( t.isSystemEquation )return null; 
-			var sum = 0;
-			for(var i=0; i<t.rowSize; i++)sum+=t.data[i][i];
-			return sum;
-		} )(me);
+		me._normalize();
+		
 		
 	};
+	//sets element to i,j place
+	me.setEl = function(el,k,p){
+		//if(el && k && p){
+			this.data[k][p]=el;
+		//}
+	}
 		
 	//work if system of equation is diagonalized
 	me.getResolve = function(){
@@ -325,7 +348,7 @@ JSMathExt.matrix = function(){
 					for(var i = 0; i < me.rowSize; i++){
 						for(var j = 0; j < me.colSize; j++){
 							res.data[i][j] = me.scalar(me.getRowAt(i),matr.getColAt(j));
-							if( Math.abs(res.data[i][j]) < 0.000001 ) res.data[i][j] = 0;
+							if( Math.abs(res.data[i][j]) < this._accuracy ) res.data[i][j] = 0;
 						}
 					}
 					
@@ -380,14 +403,30 @@ JSMathExt.matrix = function(){
 		me.colSize = rows;
 	};
 	
-	//swaps rows i to k, k to i
-	me.swapRows = function(){
-	
+	//swaps rows p to k, k to p
+	me.swapRows = function(p,k){
+		var me = this
+			,rows = me.rowSize;
+		if( (p+k)/2 >= 0 && (p+k)/2 < rows){
+			var from = me.getRowAt(p)
+				,to = me.getRowAt(k);
+			me.replaceRowAt(to,p);
+			me.replaceRowAt(from,k);
+			
+		}
 	};
 	
-	//swaps columns i to k, k to i
-	me.swapCols = function(){
-	
+	//swaps columns p to k, k to p
+	me.swapCols = function(p,k){
+		var me = this
+			,cols = me.colSize;
+		if( (p+k)/2 >= 0 && (p+k)/2 < cols ){
+			var from = me.getColAt(p)
+				,to = me.getColAt(k);
+			me.replaceColAt(to,p);
+			me.replaceColAt(from,k);
+			
+		}
 	}
 	
 	//returns determinant of matrix (without recursion)
@@ -421,7 +460,6 @@ JSMathExt.matrix = function(){
 				
 				var d1 = me.data[0][0]*me.data[1][1];
 				var d2 = me.data[0][1]*me.data[1][0];
-				//console.log(d1-d2);
 				return d1-d2;
 				
 			}else{
@@ -451,7 +489,6 @@ JSMathExt.matrix = function(){
 		
 		matr = new JSMathExt.matrix(this.rowSize-1,this.colSize-1,data);
 		return matr;
-		
 	};
 	
 	//return A^-1 matrix of A
@@ -465,7 +502,8 @@ JSMathExt.matrix = function(){
 			for( var i = 0; i<rows; i++ ){
 				for( var j = 0; j<cols; j++ ){
 					var el =  ( ( (i+j)%2 == 1 )?-1:1 )*me.algebSupplement(i,j).detR() ;
-					if( Math.abs(el) < 0.000001 ){
+					if( Math.abs(el) < this._accuracy ){
+						console.log('OK');
 						data.push(0);
 					}else{
 						data.push(el);
@@ -474,11 +512,49 @@ JSMathExt.matrix = function(){
 			}
 			
 			var matr = new JSMathExt.matrix(me.rowSize,me.colSize,data);
-			console.log('#'+det);
 			matr.multiply(1/det);
+			matr._normalize();
 			return matr;
 		}
-	}
+	};
+	//
+	me._normalize = function(){
+		var cols = this.colSize
+			,rows = this.rowSize
+			,res = this;
+		for( var i = 0; i < rows; i++ ){
+			for( var j = 0; j < cols; j++ ){
+				if( Math.abs(res.data[i][j]) < this._accuracy ) res.data[i][j] = 0; 
+			}
+		}
+	};
+	
+	//render matrix to browser
+	me.render = function(dom,comment){
+		var cols = this.colSize
+			,rows = this.rowSize
+			,text = ""
+			,matrix = this
+			,alph;
+		text += comment+'<br/>';
+		for( var i = 0; i < rows; i++ ){
+			for( var j = 0; j < cols; j++ ){
+				if( j == cols-1 ){
+					text += ' = '+matrix.data[i][j]+'y'+((i+1)+'').sub()+' <br\>';
+				}else{
+					text += matrix.data[i][j]+'x'+((j+1)+'').sub()+( (j == cols-2)?' ':'+' );
+				}
+				
+			}
+		}
+		if(document.getElementById(dom)){
+			document.getElementById(dom).innerHTML = (text);
+		}else{
+			var div = document.createElement('div');
+			div.innerHTML = text;
+			document.body.appendChild(div);
+		}
+	};
 	
 	})(this); 
 	
@@ -579,9 +655,9 @@ JSMathExt.matrix = function(){
 			,mustBe = rowSize*colSize;
 		
 		if(count < mustBe){
-			throw({msg:"There are too little elements must be: "+mustBe+" , real: "+count});
+			throw({msg:"There are too little elements must be: "+mustBe+" , real: "+count , msg_id:0});
 		}else if(count > mustBe){
-			throw({msg:"There are too more elements must be: "+mustBe+" , real: "+count});
+			throw({msg:"There are too more elements must be: "+mustBe+" , real: "+count , msg_id:1});
 		}else{
 			var row = [];
 				
