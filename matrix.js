@@ -1,4 +1,12 @@
+
 var JSMathExt = {};
+
+JSMathExt.numberGenerate = function(str) {
+	if (!arguments.callee.id) {
+		arguments.callee.id = parseInt(10000*Math.random());
+	}
+	return str+arguments.callee.id++;
+};
 
 JSMathExt.matrix = function(){
 	var rowSize = arguments[0]
@@ -8,478 +16,616 @@ JSMathExt.matrix = function(){
 		
 	this.isSystemEquation = false;
 	this.diagonalized = false; 
-	this._accuracy = 0.00000001;
+	this.idPrefix = 'mathjs-';
+	this.id = 0;
+	this._accuracy = 0.000000001;
+	this.domID = 'mathjs-matrix_place_id';
 	//self-executable function where defined methods of matrix
 	( function( me ){
-		
-	//print matrix to web console and return matrix as string
-	me.print = function(){
-		var me = this , str = "";
-		
-		if( me.data.length == 0 )return null;
-		for( var i=0 ; i < me.rowSize; i++ ){
-			for( var j=0; j < me.colSize; j++ )
-				str += me.data[i][j]+" ";
-			str += "\n";
-		}
-		return str;
-	};
-	
-	//
-	me.toString = function(){
-		return me.print();
-	}
-	
-	//adds row
-	me.addRow = function(row,place){
-		var place = parseInt(arguments[1])
-			,row = arguments[0]
-			,me = this;
-		try{
-			if( !(row instanceof Array) ){
-				throw("Row is not array");
-			}
-		}catch(e){
-			row = [];
-		}finally{
-			if(row.length < me.rowSize){
-				row = me._stretchVectorBy( row,this.rowSize);
-			}
 			
-			if( place ){
-				me.data.splice( place,0,row );
-				me.rowSize++;
-			}else{
-				me.data.push( row );
-				me.rowSize++;
-			}
-		}
-	};
-	
-	//adds column
-	me.addCol = function(col,place){
-		var place = parseInt(arguments[1])
-			,col = arguments[0]
-			,me = this;
-		
-		try{
-			if( !(col instanceof Array) ){
-				throw("Column is not array");
-			}
-		}catch(e){
-			col = new Array();
-		}finally{
-			if(col.length < me.colSize){
-				col = me._stretchVectorBy( col,me.colSize);
-			}
+		me.id = JSMathExt.numberGenerate(me.idPrefix);
 			
-			if( place ){
+		/**
+		 * Presents matrix as string.
+		 * @return {String} returns string
+		 */
+		me.print = function(){
+			var me = this , str = "";
+			
+			if( me.data.length == 0 )return null;
+			for( var i=0 ; i < me.rowSize; i++ ){
+				for( var j=0; j < me.colSize; j++ )
+					str += me.data[i][j]+" ";
+				str += "\n";
+			}
+			return str;
+		};
+		
+		me.toString = function(){
+			return me.print();
+		}
+		
+		/**
+		 * Adds a row to matrix.
+		 * @param {Array} row Row that will be added 
+		 * @param {Integer} place The place of row
+		 */
+		me.addRow = function(row,place){
+			var place = parseInt(arguments[1])
+				,row = arguments[0]
+				,me = this;
+			try{
+				if( !(row instanceof Array) ){
+					throw("Row is not array");
+				}
+			}catch(e){
+				row = [];
+			}finally{
+				if(row.length < me.rowSize){
+					row = me._stretchVectorBy( row,this.rowSize);
+				}
+				
+				if( place ){
+					me.data.splice( place,0,row );
+					me.rowSize++;
+				}else{
+					me.data.push( row );
+					me.rowSize++;
+				}
+			}
+		};
+		
+		/**
+		 * Adds a column to matrix.
+		 * @param {Array} col Column that will be added 
+		 * @param {Integer} place The place of column
+		 */
+		me.addCol = function(col,place){
+			var place = parseInt(arguments[1])
+				,col = arguments[0]
+				,me = this;
+			
+			try{
+				if( !(col instanceof Array) ){
+					throw("Column is not array");
+				}
+			}catch(e){
+				col = new Array();
+			}finally{
+				if(col.length < me.colSize){
+					col = me._stretchVectorBy( col,me.colSize);
+				}
+				
+				if( place ){
+					me.transpon();
+					me.data.splice( place,0,col );
+					me.rowSize++;
+				}else{
+					me.transpon();
+					me.data.push( col );
+					//me.colSize++;
+					me.rowSize++;
+				}
 				me.transpon();
-				me.data.splice( place,0,col );
-				me.rowSize++;
+			}
+		};
+		
+		/**
+		 * Removes column at specified place.
+		 * @param {Integer} number Number of column
+		 */  
+		me.removeColAt = function(number){
+			
+			var place = parseInt( arguments[0] )
+				,columns = []
+				,me = this;
+					
+			me.transpon();	
+			if( place || place == 0 ){
+				me.data.splice( place,1 );
 			}else{
+				me.data.splice( me.colSize-1,1 );
+			}
+			me.rowSize--;
+			me.transpon();	
+		};
+		
+		/**
+		 * Removes row at specified place.
+		 * @param {Integer} number Number of row
+		 */ 
+		me.removeRowAt = function(){
+			var place = parseInt( arguments[0] )
+				,columns = []
+				,me = this;
+					
+			if( place ){
+				me.data.splice( place,1 );
+			}else{
+				me.data.splice( me.rowSize-1,1 );
+			}
+			me.rowSize--;
+		};
+		
+		/**
+		 * gets row at specified place.
+		 * @param {Integer} k Number of row
+		 * @return {Array} the row
+		 */ 
+		me.getRowAt = function(k){
+			var ar = []
+				,k = (function(numb){
+					var k = numb;
+					if(k-k == 0)return k;
+					console.log('Error in getRowAt: argument is not number ');
+					return 0;
+				})(arguments[0]);
+			
+			for(var i = 0; i < this.colSize; i++){
+				ar[i] = this.data[k][i];
+			}
+			return ar;
+		};
+		
+		/**
+		 * Replaces a row at k-th position to row
+		 * @param {Array} row the row that will be placed 
+		 * @param {Integer} k number of the row that will be replaced
+		 */
+		me.replaceRowAt = function(row,k){
+			for( var i = 0; i < this.colSize; i++ ){
+				this.data[k][i] = row[i];
+			}
+		}  
+		
+		/**
+		 * Returns k-th column of the matrix .
+		 * @param {Integer} k The number of column
+		 * @return {Array} the column
+		 */
+		me.getColAt = function(k){
+			var ar = []
+				,k = (function(numb){
+					var k = numb;
+					if(k-k == 0)return k;
+					console.log('Error in getColAt: argument is not number ');
+					return 0;
+				})(arguments[0]);
+			
+			for( var i = 0; i < this.rowSize; i++ ){
+				ar[i] = this.data[i][k];
+			}
+			
+			return ar;
+		};
+		
+		/**
+		 * Replaces a column at k-th position to column
+		 * @param {Array} col the column that will be placed 
+		 * @param {Integer} k number of the column that will be replaced
+		 */
+		me.replaceColAt = function(col,k){
+			for( var i = 0; i < this.rowSize; i++ ){
+				this.data[i][k] = col[i];
+			}
+		};
+		
+		/**
+		 * Computes scalar magnitude of two vectors
+		 * @param {Array} m1 the vector 
+		 * @param {Array} m2 the vector
+		 */
+		me.scalar = function(m1,m2){
+			var val = 0;
+			for(var i = 0; i < m1.length; i++)val +=(m1[i]*m2[i]);
+			return val;
+		};
+		
+		/**
+		 * Checks matrix to have NxN size
+		 * @return {Bool} true if matrix NxN
+		 */
+		me.isQuad = function(){
+			if(this.colSize == this.rowSize)return true;
+			return false;
+		};
+		
+		/**
+		 * Converse given matrix to system of linear equation by adding column
+		 * @param {Array} col the column that will be added
+		 * @example: let we have  a matrix
+		 * [ 1, 2;
+		 *   3, 4]
+		 * let we want to make it system of equation by addind column [9,9], so
+		 * [ 1, 2 , 9;
+		 *   3, 4 , 9]
+		 */
+		me.makeSystem = function(col){
+			if( this.isSystemEquation ){
+				console.log("System of Linear Equation has been made earlier");
+				return false;
+			}
+			var place = parseInt(arguments[1])
+				,col = arguments[0]
+				,me = this;
+			
+			try{
+				if( !(col instanceof Array) ){
+					throw("Column is not array");
+				}
+			}catch(e){
+				col = new Array();
+			}finally{
+				if(col.length < me.colSize){
+					col = me._stretchVectorBy( col,me.colSize);
+				}
 				me.transpon();
 				me.data.push( col );
-				//me.colSize++;
 				me.rowSize++;
+				me.transpon();
+				this.isSystemEquation = true;
 			}
-			me.transpon();
-		}
-	};
-	
-	//removes specified column if argument will be given, or last column   
-	me.removeColAt = function(){
+		};
 		
-		var place = parseInt( arguments[0] )
-			,columns = []
-			,me = this;
-				
-		me.transpon();	
-		if( place || place == 0 ){
-			me.data.splice( place,1 );
-		}else{
-			me.data.splice( me.colSize-1,1 );
-		}
-		me.rowSize--;
-		me.transpon();	
-	};
-	
-	//removes specified row if argument will be given, or last row   
-	me.removeRowAt = function(){
-		var place = parseInt( arguments[0] )
-			,columns = []
-			,me = this;
-				
-		if( place ){
-			me.data.splice( place,1 );
-		}else{
-			me.data.splice( me.rowSize-1,1 );
-		}
-		me.rowSize--;
-	};
-	
-	//gets i-th row as array
-	me.getRowAt = function(k){
-		var ar = []
-			,k = (function(numb){
-				var k = numb;
-				if(k-k == 0)return k;
-				console.log('Error in getRowAt: argument is not number ');
-				return 0;
-			})(arguments[0]);
-		
-		for(var i = 0; i < this.colSize; i++){
-			ar[i] = this.data[k][i];
-		}
-		return ar;
-	};
-	
-	//change N-th row 
-	me.replaceRowAt = function(row,k){
-		for( var i = 0; i < this.colSize; i++ ){
-			this.data[k][i] = row[i];
-		}
-	}  
-	
-	//gets i-th column as array
-	me.getColAt = function(k){
-		var ar = []
-			,k = (function(numb){
-				var k = numb;
-				if(k-k == 0)return k;
-				console.log('Error in getColAt: argument is not number ');
-				return 0;
-			})(arguments[0]);
-		
-		for( var i = 0; i < this.rowSize; i++ ){
-			ar[i] = this.data[i][k];
-		}
-		
-		return ar;
-	};
-	
-	//replace i-th column 
-	me.replaceColAt = function(col,k){
-		for( var i = 0; i < this.rowSize; i++ ){
-			this.data[i][k] = col[i];
-		}
-	};
-	
-	//scalar value of two vectors
-	me.scalar = function(m1,m2){
-		var val = 0;
-		for(var i = 0; i < m1.length; i++)val +=(m1[i]*m2[i]);
-		return val;
-	};
-	
-	//check matrix to be N x N
-	me.isQuad = function(){
-		if(this.colSize == this.rowSize)return true;
-		return false;
-	};
-	
-	//converse given matrix to system of linear equation,
-	//where col is column (x1,...,xn) in
-	/*
-	  A*x1+ ... +B*xn = x1
-	  ...
-	  V*x1+ ...+F*xn = xn
-	*/
-	me.makeSystem = function(col){
-		if( this.isSystemEquation ){
-			console.log("System of Linear Equation has been made earlier");
-			return false;
-		}
-		var place = parseInt(arguments[1])
-			,col = arguments[0]
-			,me = this;
-		
-		try{
-			if( !(col instanceof Array) ){
-				throw("Column is not array");
-			}
-		}catch(e){
-			col = new Array();
-		}finally{
-			if(col.length < me.colSize){
-				col = me._stretchVectorBy( col,me.colSize);
-			}
-			me.transpon();
-			me.data.push( col );
-			me.rowSize++;
-			me.transpon();
-			this.isSystemEquation = true;
-		}
-	};
-	
-	/*Here is SLE
-		A(1,1)*x(1)+ ... +B(1,n)*x(m) = x(1)
-		...
-		A(n-1,1)*x(1)+ ... +B(n-1,m)*x(m) = x(m-1)
-		A(n,1)*x(1)+ ... +B(n,m)*x(m) = x(m)
-	  after diagonalizing:
-		A(1,1)*x(1)+ ... +0*x(m) = x(1)
-		...
-		0*x(1)+ ... C(n-1,m-1)*x(m)+0*x(m) 	= x(m-1)
-		0*x(1)+ ... 			+B(n,m)*x(m) = x(m)
-		this method must be applied only to system of equations
-		where matrix size is N*(N+1), that is, there are only N rows
-		and N+1 columns. The (N+1)th column is (x(1), ... , x(m)) vector
-		in above example.
-	*/
-	me.diagonalize = function(){
-		var me = this
-			, doit = function(){
-				var cols = me.colSize
-					,rows = me.rowSize
-					,del = 0 , k = 0 ;
-				for(;k<rows-1;k++)
-				for(var i = 0; i<rows-k-1; i++){
-					var tb = me.data[rows-i-1][k]
-						,as = me.data[k][k];
-					if( as == 0 || tb == 0 )continue;
-					del = tb / as;
-					for(var j = 0; j<cols; j++){
-						me.data[rows-i-1][j] = me.data[rows-i-1][j] - del*me.data[k][j];
-						if( Math.abs(me.data[rows-i-1][j]) < me._accuracy )me.data[rows-i-1][j]=0;
-					}
-				};
-				me.diagonalized = true;
-				if( cols-rows == 1 || me.isSystemEquation ){
-					for(k = cols-2; k>=1;k--)
-					for(var i = k; i>=1; i--){
-						var tb = me.data[i-1][k]
+		/**
+		 * Diagonalize the matrix or system
+		 * @example: there is system
+		 * [ 1, 2 , 3;
+		 *   3, 4 , 7]
+		 * after diagonalizing we have
+		 * [ 1, 0, 1;
+		 *   0, -2, -2]
+		 */
+		me.diagonalize = function(){
+			var me = this
+				, doit = function(){
+					var cols = me.colSize
+						,rows = me.rowSize
+						,del = 0 , k = 0 , swap = [];
+					for(;k<rows-1;k++)
+					for(var i = 0; i<rows-k-1; i++){
+						var tb = me.data[rows-i-1][k]
 							,as = me.data[k][k];
-							console.log(tb+','+as);
-						if( as == 0 || tb == 0 )continue;
+						if( as == 0 || tb == 0 ){
+							continue;
+						}
 						del = tb / as;
 						for(var j = 0; j<cols; j++){
-							me.data[i-1][j] = me.data[i-1][j] - del*me.data[k][j];
-							if( Math.abs(me.data[i-1][j]) < this._accuracy )me.data[i-1][j]=0;
+							me.data[rows-i-1][j] = me.data[rows-i-1][j] - del*me.data[k][j];
+							if( Math.abs(me.data[rows-i-1][j]) < me._accuracy )me.data[rows-i-1][j]=0;
 						}
+						
 					};
-				}else{
-					for(k = cols-1; k>=1;k--)
-					for(var i = k; i>=1; i--){
-						var tb = me.data[i-1][k]
-							,as = me.data[k][k];
-			
-						if( as == 0 || tb == 0 )continue;
-						del = tb / as;
-						for(var j = 0; j<cols; j++){
-							me.data[i-1][j] = me.data[i-1][j] - del*me.data[k][j];
-							if( Math.abs(me.data[i-1][j]) < this._accuracy )me.data[i-1][j]=0;
-						}
-					};
-				}
-				
-			};
-		doit();
-		return ( function(t){
-			if( t.isSystemEquation )return null; 
-			var sum = 0;
-			for(var i=0; i<t.rowSize; i++)sum+=t.data[i][i];
-			return sum;
-		} )(me);
-		
-	};
-		
-	//work if system of equation is diagonalized
-	me.getResolve = function(){
-		if( this.diagonalized ){
-			var solve = [];
-			for(var i = 0; i < me.rowSize; i++){
-				solve.push( me.data[i][me.colSize-1]/me.data[i][i] );
-			}
-			return solve;
-		}
-		console.log("Matrix is not System of Linear Equations or not diagonalized");
-	};
-
-	
-	//inner function return multiplication of dimensions of matrix N*M
-	//it is used (after) in conjunction with isQuad
-	me._prodSize = function(){
-		return this.colSize * this.rowSize;
-	};
-	
-	//inner function stretch row or column to relevant matrix size by argument or 0
-	me._stretchVectorBy = function(){
-		var vector = arguments[0]
-			,size = arguments[1]
-			,stub = arguments[2] || [];
-		for(var i = 0;i<size;i++)vector.push( (stub[i] || 0) );
-		return vector;
-	};
-	
-	//multiply matrix to matrix or number, return resulting one
-	me.multiply = function(){
-		var matr = arguments[0]//ohter matrix
-			,me = this//this matrix 
-			,res = new JSMathExt.matrix(me.colSize,me.colSize);
-		
-		if( (matr instanceof JSMathExt.matrix) ){
-			if( me.isQuad() && matr.isQuad() ){
-				//if matrixes are quadratic then check them to be equal size
-				if( me._prodSize() == matr._prodSize() ){
-					for(var i = 0; i < me.rowSize; i++){
-						for(var j = 0; j < me.colSize; j++){
-							res.data[i][j] = me.scalar(me.getRowAt(i),matr.getColAt(j));
-							if( Math.abs(res.data[i][j]) < this._accuracy ) res.data[i][j] = 0;
+					//if a[i][k] and a[i][p] is equal(k>p) then swap rows
+					for( var i = 1;i < rows; i++ ){
+						if( me.data[i][i] == 0 ){
+							console.log(i+','+i+' = '+me.data[i][i]);
+							for(var j=i+1;j<rows;j++){
+								if( me.data[j][i] != 0){
+									console.log(i+','+i+' = '+me.data[j][i]);
+									me.swapRows(i,j);
+									doit();
+									break;
+								}
+							}
+							break;
 						}
 					}
+					me.print();
 					
-					return res;
-				}else{
-					throw("Matrixes have not equal size");
-				}
-			}else{
-				throw("Matrix is not quadratic ");
-			}
-			
-		}else{
-			var number = matr;
-			console.log(number);
-			for(var i = 0; i < me.rowSize; i++){
-				for(var j = 0; j < me.colSize; j++){
-					me.data[i][j] *= number;
-				}
-			}
-		}
-		return me;
-	};
-	
-	//gets submatrix 
-	me.sub = function(){
-		var data = []
-			,matr = null
-			,n = parseInt(arguments[0])
-			,m = parseInt(arguments[1]);
-		
-		for(var i = 0; i < this.rowSize; i++){
-			for( var j =0; j < this.colSize; j++){
-					if(i != n && j!= m) data.push(this.data[i][j]);
-				
-			}
-		} 
-		matr = new JSMathExt.matrix(this.rowSize-1,this.colSize-1,data);
-		return matr;
-	};
-	
-	//transponiren das matrix
-	me.transpon = function(){
-		var me = this
-			,columns = []
-			,rows = me.rowSize
-			,cols = me.colSize;
-		for( var i=0; i < cols; i++ ){
-			columns.push( me.getColAt(i) );
-		}
-		me.data = columns;
-		me.rowSize = cols;
-		me.colSize = rows;
-	};
-	
-	//swaps rows i to k, k to i
-	me.swapRows = function(){
-	
-	};
-	
-	//swaps columns i to k, k to i
-	me.swapCols = function(){
-	
-	}
-	
-	//returns determinant of matrix (without recursion)
-	me.det = function(){
-		var me = this
-			,rows = me.rowSize
-			,cols = me.colSize;
-		if( me.isQuad() ){
-			if( rows == 1 )return me.data[0][0];
-			if( rows == 2 ){
-				var d1 = me.data[0][0]*me.data[1][1];
-				var d2 = me.data[0][1]*me.data[1][0];
-				return d1-d2;
-				
-			}else{
-				var matr = new JSMathExt.matrix(me.data);
-				return matr.diagonalize();
-			}
-		}
-	}
-	
-	//returns determinant of matrix (with recursion)
-	me.detR = function(){
-		var me = this
-			,rows = me.rowSize
-			,cols = me.colSize
-			,sum = 0;
-		if( me.isQuad() ){
-			if( rows == 1 )return me.data[0][0];
-			if( rows == 2 ){
-				
-				var d1 = me.data[0][0]*me.data[1][1];
-				var d2 = me.data[0][1]*me.data[1][0];
-				return d1-d2;
-				
-			}else{
-				for(var i=0;i<me.colSize;i++){
-					sum += ( (i%2 == 1)?-1:1 )*( me.sub(0,i).detR() )*me.data[0][i];
-				}
-				return sum;
-			}
-		}
-	}
-	
-	//gets algebraic suppplement ()
-	//r number of row, 
-	//c number of column
-	me.algebSupplement = function(r,c){
-		var data = []
-			,matr = null
-			,n = parseInt(arguments[0]);
-		
-		for(var i = 0; i < this.rowSize; i++){
-			for( var j =0; j < this.colSize; j++){
-				if(i != c && j!= r){
-					data.push(this.data[i][j]);
-				}
-			}
-		} 
-		
-		matr = new JSMathExt.matrix(this.rowSize-1,this.colSize-1,data);
-		return matr;
-	};
-	
-	//return A^-1 matrix of A
-	me.obrat = function(){
-		var me = this
-			,rows = me.rowSize
-			,cols = me.colSize
-			,det = me.detR()
-			,data = [];
-		if( me.isQuad() ){
-			for( var i = 0; i<rows; i++ ){
-				for( var j = 0; j<cols; j++ ){
-					var el =  ( ( (i+j)%2 == 1 )?-1:1 )*me.algebSupplement(i,j).detR() ;
-					if( Math.abs(el) < this._accuracy ){
-						data.push(0);
+					if( cols-rows == 1 || me.isSystemEquation ){
+						for(k = cols-2; k>=1;k--)
+						for(var i = k; i>=1; i--){
+							var tb = me.data[i-1][k]
+								,as = me.data[k][k];
+							if( as == 0 || tb == 0 )continue;
+							del = tb / as;
+							for(var j = 0; j<cols; j++){
+								me.data[i-1][j] = me.data[i-1][j] - del*me.data[k][j];
+								if( Math.abs(me.data[i-1][j]) < this._accuracy )me.data[i-1][j]=0;
+							}
+						};
 					}else{
-						data.push(el);
+						for(k = cols-1; k>=1;k--)
+						for(var i = k; i>=1; i--){
+							var tb = me.data[i-1][k]
+								,as = me.data[k][k];
+				
+							if( as == 0 || tb == 0 )continue;
+							del = tb / as;
+							for(var j = 0; j<cols; j++){
+								me.data[i-1][j] = me.data[i-1][j] - del*me.data[k][j];
+								if( Math.abs(me.data[i-1][j]) < this._accuracy )me.data[i-1][j]=0;
+							}
+						};
+					}
+					me.diagonalized = true;
+					
+				};
+			doit();
+			me._normalize();
+			
+			
+		};
+		//sets element to i,j place
+		me.setEl = function(el,k,p){
+			//if(el && k && p){
+				this.data[k][p]=el;
+			//}
+		}
+			
+		/**
+		 * Gets resolution of system equation
+		 * @return {Array} resolution
+		 * @warning: before matrix must be diagonalized by diagonalize()
+		 */
+		me.getResolve = function(){
+			if( this.diagonalized ){
+				var solve = [];
+				for(var i = 0; i < me.rowSize; i++){
+					solve.push( me.data[i][me.colSize-1]/me.data[i][i] );
+				}
+				return solve;
+			}
+			console.log("Matrix is not System of Linear Equations or not diagonalized");
+		};
+		
+		/**
+		 * Inner function
+		 * @return {Number} number of elements in matrix
+		 */
+		me._prodSize = function(){
+			return this.colSize * this.rowSize;
+		};
+		
+		/**
+		 * Inner function : stretch vector to relevant size
+		 * @param {Array} vector array that will be stretched
+		 * @param {Number} size relevant size
+		 * @param {Array} stub elements that will be added to vector
+		 * @return {Array} stretched vector
+		 */
+		me._stretchVectorBy = function(vector,size,stub){
+			vector = arguments[0];
+			stub = stub || [];
+			for(var i = 0;i<size;i++)vector.push( (stub[i] || 0) );
+			return vector;
+		};
+		
+		/**
+		 * Multiplication of matrix
+		 * @param {Matrix} matr matrix
+		 * @return {Matrix} resulting matrix
+		 */
+		me.multiply = function(matr){
+			var matr = arguments[0] || matr//other matrix
+				,me = this//this matrix 
+				,res = new JSMathExt.matrix(me.colSize,me.colSize);
+			
+			if( (matr instanceof JSMathExt.matrix) ){
+				if( me.isQuad() && matr.isQuad() ){
+					//if matrixes are quadratic then check them to be equal size
+					if( me._prodSize() == matr._prodSize() ){
+						for(var i = 0; i < me.rowSize; i++){
+							for(var j = 0; j < me.colSize; j++){
+								res.data[i][j] = me.scalar(me.getRowAt(i),matr.getColAt(j));
+								if( Math.abs(res.data[i][j]) < this._accuracy ) res.data[i][j] = 0;
+							}
+						}
+						
+						return res;
+					}else{
+						throw("Matrixes have not equal size");
+					}
+				}else{
+					throw("Matrix is not quadratic ");
+				}
+				
+			}else{
+				var number = matr;
+				console.log(number);
+				for(var i = 0; i < me.rowSize; i++){
+					for(var j = 0; j < me.colSize; j++){
+						me.data[i][j] *= number;
 					}
 				}
 			}
+			return me;
+		};
+		
+		/**
+		 * Gets submatrix
+		 * @param {Integer} n line number
+		 * @param {Integer} m column number
+		 */
+		me.sub = function(n,m){
+			var data = []
+				,matr = null
+				,n = parseInt(arguments[0]) || n
+				,m = parseInt(arguments[1]) || m;
 			
-			var matr = new JSMathExt.matrix(me.rowSize,me.colSize,data);
-			matr.multiply(1/det);
+			for(var i = 0; i < this.rowSize; i++){
+				for( var j =0; j < this.colSize; j++){
+						if(i != n && j!= m) data.push(this.data[i][j]);
+					
+				}
+			} 
+			matr = new JSMathExt.matrix(this.rowSize-1,this.colSize-1,data);
 			return matr;
+		};
+		
+		/**
+		 * Transponizes a matrix
+		 */
+		me.transpon = function(){
+			var me = this
+				,columns = []
+				,rows = me.rowSize
+				,cols = me.colSize;
+			for( var i=0; i < cols; i++ ){
+				columns.push( me.getColAt(i) );
+			}
+			me.data = columns;
+			me.rowSize = cols;
+			me.colSize = rows;
+		};
+		
+		/**
+		 * Swaps rows p to k, k to p
+		 * @param {Integer} p row number
+		 * @param {Integer} k row number
+		 */
+		me.swapRows = function(p,k){
+			var me = this
+				,rows = me.rowSize;
+			if( (p+k)/2 >= 0 && (p+k)/2 < rows){
+				var from = me.getRowAt(p)
+					,to = me.getRowAt(k);
+				me.replaceRowAt(to,p);
+				me.replaceRowAt(from,k);
+				
+			}
+		};
+		
+		/**
+		 * Swaps column p to k, k to p
+		 * @param {Integer} p column number
+		 * @param {Integer} k column number
+		 */
+		me.swapCols = function(p,k){
+			var me = this
+				,cols = me.colSize;
+			if( (p+k)/2 >= 0 && (p+k)/2 < cols ){
+				var from = me.getColAt(p)
+					,to = me.getColAt(k);
+				me.replaceColAt(to,p);
+				me.replaceColAt(from,k);
+				
+			}
 		}
-	}
-	
+		
+		/**
+		 * Returns determinant of matrix (with recursion)
+		 * @return {Number} determinant
+		 */
+		me.detR = function(){
+			var me = this
+				,rows = me.rowSize
+				,cols = me.colSize
+				,sum = 0;
+			if( me.isQuad() ){
+				if( rows == 1 )return me.data[0][0];
+				if( rows == 2 ){
+					
+					var d1 = me.data[0][0]*me.data[1][1];
+					var d2 = me.data[0][1]*me.data[1][0];
+					return d1-d2;
+					
+				}else{
+					for(var i=0;i<me.colSize;i++){
+						sum += ( (i%2 == 1)?-1:1 )*( me.sub(0,i).detR() )*me.data[0][i];
+					}
+					return sum;
+				}
+			}
+		}
+		
+		/**
+		 * Gets algebraic suppplement
+		 * @param {Integer} r row    number
+		 * @param {Integer} c column number
+		 * @return {Matrix} algebraic suppplement
+		 */
+		me.algebSupplement = function(r,c){
+			var data = []
+				,matr = null
+				,n = parseInt(arguments[0]);
+			
+			for(var i = 0; i < this.rowSize; i++){
+				for( var j =0; j < this.colSize; j++){
+					if(i != c && j!= r){
+						data.push(this.data[i][j]);
+					}
+				}
+			} 
+			
+			matr = new JSMathExt.matrix(this.rowSize-1,this.colSize-1,data);
+			return matr;
+		};
+		
+		/**
+		 * Return back(counter) matrix
+		 * @return {Matrix} back(counter) matrix
+		 */
+		me.obrat = function(){
+			var me = this
+				,rows = me.rowSize
+				,cols = me.colSize
+				,det = me.detR()
+				,data = [];
+			if( me.isQuad() ){
+				for( var i = 0; i<rows; i++ ){
+					for( var j = 0; j<cols; j++ ){
+						var el =  ( ( (i+j)%2 == 1 )?-1:1 )*me.algebSupplement(i,j).detR() ;
+						if( Math.abs(el) < this._accuracy ){
+							console.log('OK');
+							data.push(0);
+						}else{
+							data.push(el);
+						}
+					}
+				}
+				
+				var matr = new JSMathExt.matrix(me.rowSize,me.colSize,data);
+				matr.multiply(1/det);
+				matr._normalize();
+				return matr;
+			}
+		};
+		
+		/**
+		 * Inner function:
+		 * Sets accuracy to matrix elements
+		 */
+		me._normalize = function(){
+			var cols = this.colSize
+				,rows = this.rowSize
+				,res = this;
+			for( var i = 0; i < rows; i++ ){
+				for( var j = 0; j < cols; j++ ){
+					if( Math.abs(res.data[i][j]) < this._accuracy ) res.data[i][j] = 0; 
+				}
+			}
+		};
+		
+		/**
+		 * Render matrix as HTML
+		 */
+		me.render = function(directives){
+			var cols = this.colSize
+				,rows = this.rowSize
+				,table_menu = document.createElement('table')
+				,table_matrix = document.createElement('table')
+				,div = document.createElement('form')
+				,dom 	= 	( directives ? directives.dom : null )//id of element to write there matrix
+				,msg 	= 	( directives ? directives.msg : null )//message to matrix
+				,save 	= 	( directives ? directives.save : null )//save previuos printed matrix
+				,matrix = this
+				,tr = null
+				,td = null;
+				
+			div.id = me.id;
+			
+			//creating menu table
+			tr = document.createElement('tr');
+			td = document.createElement('td');
+
+		};
 	})(this); 
 	
-	//creates matrix 
+	/**
+	 * Creates matrix from given arguments
+	 */
 	if( _size == 0 ){
 		this.rowSize = rowSize || 3;
 		this.colSize = colSize || 3;
@@ -512,7 +658,7 @@ JSMathExt.matrix = function(){
 			this.data = [];
 			this.rowSize = rows;
 			this.colSize = cols;	
-			if( rows-cols == 1 )this.isSystemEquation = false;
+			if( Math.abs(rows-cols) == 1 )this.isSystemEquation = false;
 			for(var i=0; i < rows; i++){
 				for(var j=0; j < cols; j++){
 					row[j] = (matr[i][j] || 0);
@@ -527,7 +673,7 @@ JSMathExt.matrix = function(){
 			this.rowSize = rowSize;
 			this.colSize = colSize;
 			this.data = [];
-			if( rowSize-colSize == 1 )this.isSystemEquation = false;
+			if( Math.abs(rowSize-colSize) == 1 )this.isSystemEquation = true;
 			var row = [];
 			for(var i = 0; i < rowSize; i++ ){
 				for(var j = 0; j < colSize; j++ ){
@@ -548,9 +694,7 @@ JSMathExt.matrix = function(){
 					return max_col;
 				})(matr)
 				,row = [];
-			if( rows-cols == 1 ){
-				this.isSystemEquation = true;
-			}
+			
 			this.data = [];
 			this.rowSize = rows;
 			this.colSize = cols;	
@@ -562,16 +706,18 @@ JSMathExt.matrix = function(){
 				this.data[i] = row;
 				row = [];
 			}
-			
-			console.log(colSize);
 			this.addCol(colSize);
+			cols++;
+			if( Math.abs(rows-cols) == 1 ){
+				this.isSystemEquation = true;
+			}
 		}
 	
 	}else{
 		this.rowSize = rowSize ;
 		this.colSize = colSize ;
 		this.data = []; //data;
-		if( rowSize-colSize == 1 )this.isSystemEquation = false;
+		if( Math.abs(rowSize-colSize) == 1 )this.isSystemEquation = true;
 		var count = (data.join().split(",")).length
 			,mustBe = rowSize*colSize;
 		
